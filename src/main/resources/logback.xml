@@ -40,7 +40,7 @@
         <prudent>false</prudent>
     </appender>-->
 
-    <logger name="com.dnk.smart" level="ERROR" additivity="false">
+    <logger name="com.dnk.smart" level="DEBUG" additivity="false">
         <appender-ref ref="STDOUT"/>
     </logger>
 

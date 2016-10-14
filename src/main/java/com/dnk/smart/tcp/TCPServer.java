@@ -5,9 +5,6 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.timeout.IdleStateHandler;
-
-import static com.dnk.smart.config.Config.APP_TIME_OUT;
 
 public class TCPServer {
 
@@ -32,8 +29,8 @@ public class TCPServer {
 			@Override
 			protected void initChannel(Channel ch) throws Exception {
 				ChannelPipeline pipeline = ch.pipeline();
-				pipeline.addLast(new IdleStateHandler(APP_TIME_OUT, APP_TIME_OUT, APP_TIME_OUT));
-				pipeline.addLast(new TCPDecodeHandler());
+				//pipeline.addLast(new IdleStateHandler(APP_TIME_OUT, APP_TIME_OUT, APP_TIME_OUT));
+//				pipeline.addLast(new TCPDecodeHandler());
 				pipeline.addLast(new TCPServerHandler());
 			}
 		});

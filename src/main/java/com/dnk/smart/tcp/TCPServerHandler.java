@@ -1,12 +1,17 @@
 package com.dnk.smart.tcp;
 
+import com.dnk.smart.debug.Util;
+import com.dnk.smart.session.GatewayManager;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.timeout.IdleStateEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TCPServerHandler extends ChannelHandlerAdapter {
 
 	//private static ChannelGroup group = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TCPServerHandler.class);
 
 	@Override
 	public boolean isSharable() {
@@ -15,29 +20,40 @@ public class TCPServerHandler extends ChannelHandlerAdapter {
 
 	@Override
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-//		System.err.println(">>>>>>>>>>>>>>>client " + ctx.channel().remoteAddress() + " closed.");
-		//SessionMonitor.AppSessionManager.remove(ctx.channel());
+		LOGGER.debug(">>>>>>>>>>>>>>>client " + ctx.channel().remoteAddress() + " closed.");
+		GatewayManager.remove(ctx.channel());
 	}
 
 	@Override
 	public void channelActive(ChannelHandlerContext ctx) throws Exception {
-//		System.err.println(">>>>>>>>>>>>>>>>>>>>client " + ctx.channel().remoteAddress() + " connected.");
-		//SessionMonitor.AppSessionManager.add(ctx.channel());
+		LOGGER.debug(">>>>>>>>>>>>>>>>>>>>client " + ctx.channel().remoteAddress() + " connected.");
+		GatewayManager.add(ctx.channel());
 	}
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-//		cause.printStackTrace();
-//		System.err.println(">>>>>>>>>>>>>>>>>>>>client " + ctx.channel().remoteAddress() + " error");
+		//super.exceptionCaught(ctx, cause);
+		LOGGER.error(cause.getMessage());
+		LOGGER.debug(">>>>>>>>>>>>>>>>>>>>client " + ctx.channel().remoteAddress() + " error");
 		ctx.channel().close();
-		//SessionMonitor.AppSessionManager.remove(ctx.channel());
+		GatewayManager.remove(ctx.channel());
 	}
 
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-//		ByteBuf buf = (ByteBuf) msg;
-//		System.out.println("handler ref:" + buf.refCnt());
-//		System.err.println(">>>>>>>>>>>>>>>>>>>>>receive " + ctx.channel().remoteAddress() + " data:" + Util.read(msg));
+		LOGGER.debug(">>>>>>>>>>>>>>>>>>>>>receive " + ctx.channel().remoteAddress() + " data:" + Util.read(msg));
+
+		//TODO:根据数据add / update
+		ByteBuf buf = (ByteBuf) msg;
+		for (int i = buf.readerIndex(); i < buf.readableBytes(); i++) {
+			char c = (char) buf.readByte();
+			System.out.println(c);
+
+			if (c == 'a') {
+				GatewayManager.pass(ctx.channel(), "udid001");
+			}
+		}
+		//GatewayManager.add(ctx.channel(), "");
 		ctx.write(msg);
 	}
 
@@ -46,11 +62,11 @@ public class TCPServerHandler extends ChannelHandlerAdapter {
 		ctx.flush();
 	}
 
-	@Override
-	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-		if (evt instanceof IdleStateEvent) {
-//			System.err.println(">>>>>>>>>>>>>>>>find client " + ctx.channel().remoteAddress() + " idle too long, and remove it");
-			ctx.channel().close();
-		}
-	}
+//	@Override
+//	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+//		if (evt instanceof IdleStateEvent) {
+//			LOGGER.debug(">>>>>>>>>>>>>>>>find client " + ctx.channel().remoteAddress() + " idle too long, and remove it");
+//			ctx.channel().close();
+//		}
+//	}
 }

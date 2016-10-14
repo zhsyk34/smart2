@@ -61,4 +61,13 @@ public class CodecKit {
 	public static boolean validateVerify(byte[] data, byte[] verifyArr) {
 		return compare(encodeVerify(data), verifyArr);
 	}
+
+	/**
+	 * @param refer  参照时间
+	 * @param offset 允许参照时间距当前时间的最大偏移值,单位秒
+	 * @return 是否在有效时间内
+	 */
+	public static boolean validateTime(long refer, long offset) {
+		return System.currentTimeMillis() - refer > offset * 1000;
+	}
 }

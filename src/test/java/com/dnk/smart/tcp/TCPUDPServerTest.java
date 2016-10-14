@@ -5,8 +5,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static com.dnk.smart.tcp.UDPSponsor.awake;
-
 public class TCPUDPServerTest {
 
 	public static void main(String[] args) {
@@ -18,12 +16,17 @@ public class TCPUDPServerTest {
 
 			for (int i = 0; i < 5; i++) {
 				final int k = i;
-				service.submit(() -> awake(null, 50000 + k));
+				service.submit(() -> UDPSponsor.awake(null, 50000 + k));
 			}
 
 			service.shutdown();
+
+			while (!service.isTerminated()) {
+
+			}
+			System.err.println("-----------awake schedule end.-------------------");
 		};
 
-		executorService.scheduleAtFixedRate(taskGroup, 1, 5, TimeUnit.SECONDS);
+		executorService.scheduleAtFixedRate(taskGroup, 1, 10, TimeUnit.SECONDS);
 	}
 }
