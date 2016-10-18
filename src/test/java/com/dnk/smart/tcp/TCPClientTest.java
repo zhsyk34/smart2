@@ -85,9 +85,10 @@ public class TCPClientTest {
 			bootstrap.group(group).channel(NioSocketChannel.class);
 			bootstrap.option(ChannelOption.TCP_NODELAY, true);
 
-			bootstrap.handler(new ChannelHandlerAdapter() {
+			bootstrap.handler(new SimpleChannelInboundHandler() {
+
 				@Override
-				public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+				public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
 					count.incrementAndGet();
 					if (count.get() != 0 && count.get() % 100 == 0) {
 						System.out.println("-----------" + (count.get()) + " schedule end.-------------------");

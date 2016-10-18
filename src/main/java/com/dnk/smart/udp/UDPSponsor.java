@@ -1,8 +1,6 @@
-package com.dnk.smart.tcp;
+package com.dnk.smart.udp;
 
 import com.dnk.smart.config.Config;
-import com.dnk.smart.kit.CodecKit;
-import com.dnk.smart.kit.GsonKit;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -17,16 +15,18 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 
 /**
- * TCP-SERVER 通UDP单播唤醒(通知)网关登录(主动发起到本服务器的TCP连接)
+ * UDP单播服务
+ * 用于TCP-SERVER 唤醒(通知)网关登录(主动发起到本服务器的TCP连接)
  */
 public class UDPSponsor {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(UDPSponsor.class);
+	private static final Logger logger = LoggerFactory.getLogger(UDPSponsor.class);
 
 	private static final String ACTION = "action";
 	private static final String LOGIN_REQ = "loginReady";
 
-	private static final byte[] LOGIN_COMMAND = CodecKit.encode(GsonKit.toJson(ACTION, LOGIN_REQ));
+	//	private static final byte[] LOGIN_COMMAND = CodecKit.encode(GsonKit.toJson(ACTION, LOGIN_REQ));
+	private static final String LOGIN_COMMAND = "{\"action\":\"loginReady\"}";
 
 	public static void send(String host, int port, Object msg) {
 		Bootstrap bootstrap = new Bootstrap();
@@ -37,14 +37,15 @@ public class UDPSponsor {
 
 		bootstrap.handler(new SimpleChannelInboundHandler<DatagramPacket>() {
 			@Override
-			protected void messageReceived(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
-				//Do nothing.
+			protected void channelRead0(ChannelHandlerContext channelHandlerContext, DatagramPacket datagramPacket) throws Exception {
+
 			}
 		});
 
 		if (host == null || host.isEmpty()) {
-			host = Config.BROADCAST_HOST;
-			LOGGER.warn("use broadcast :" + host);
+//			host = Config.BROADCAST_HOST;
+			host = Config.LOCAL_HOST;
+			logger.warn("use broadcast :" + host);
 		}
 		try {
 			Channel channel = bootstrap.bind(0).syncUninterruptibly().channel();
@@ -70,5 +71,4 @@ public class UDPSponsor {
 	public static void awake(String host, int port) {
 		send(host, port, LOGIN_COMMAND);
 	}
-
 }

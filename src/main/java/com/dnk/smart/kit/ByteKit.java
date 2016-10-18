@@ -77,11 +77,4 @@ public class ByteKit {
 		return true;
 	}
 
-	public static void main(String[] args) {
-		byte[] bs = new byte[]{90, -91, 0, 13, 123, 97, 58, 49, 44, 98, 58, 50, 125, 2, -57, -91, 90, 90, -91, 0,};
-		System.out.println(byteArrayToHex(bs));
-		byte[] em = new byte[0];
-		System.out.println(new String(em));
-	}
-
 }

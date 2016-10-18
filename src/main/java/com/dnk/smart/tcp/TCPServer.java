@@ -8,7 +8,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 public class TCPServer {
 
-	public void start() {
+	public static void start() {
 		ServerBootstrap bootstrap = new ServerBootstrap();
 
 		EventLoopGroup mainGroup = new NioEventLoopGroup();
@@ -19,7 +19,7 @@ public class TCPServer {
 		//setting options
 		bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
 		bootstrap.option(ChannelOption.SO_BACKLOG, Config.SERVER_BACKLOG);
-		//bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000);
+		bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, Config.CONNECT_TIME_OUT * 1000);
 
 		//logging
 		//bootstrap.childHandler(new LoggingHandler());
@@ -29,8 +29,7 @@ public class TCPServer {
 			@Override
 			protected void initChannel(Channel ch) throws Exception {
 				ChannelPipeline pipeline = ch.pipeline();
-				//pipeline.addLast(new IdleStateHandler(APP_TIME_OUT, APP_TIME_OUT, APP_TIME_OUT));
-//				pipeline.addLast(new TCPDecodeHandler());
+				pipeline.addLast(new TCPDecodeHandler());
 				pipeline.addLast(new TCPServerHandler());
 			}
 		});

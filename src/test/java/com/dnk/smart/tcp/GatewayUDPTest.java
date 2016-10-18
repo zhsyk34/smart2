@@ -26,7 +26,7 @@ public class GatewayUDPTest {
 
 			bootstrap.handler(new SimpleChannelInboundHandler<DatagramPacket>() {
 				@Override
-				protected void messageReceived(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
+				protected void channelRead0(ChannelHandlerContext ctx, DatagramPacket msg) throws Exception {
 					String data = msg.content().toString(CharsetUtil.UTF_8);
 					InetSocketAddress sender = msg.sender();
 					System.out.println("receive " + sender + " [" + data + "]");

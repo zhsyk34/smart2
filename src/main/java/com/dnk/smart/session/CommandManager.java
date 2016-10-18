@@ -1,42 +1,42 @@
 package com.dnk.smart.session;
 
+import com.dnk.smart.config.Config;
 import com.dnk.smart.kit.CodecKit;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-
-import static com.dnk.smart.config.Config.MESSAGE_SEND_AWAIT;
+import java.util.concurrent.*;
 
 public class CommandManager {
-	//key:dest
-	private static final Map<String, BlockingQueue<Data>> map = new ConcurrentHashMap<>();
+
+	private static final Map<String, BlockingQueue<Message>> MAP = new ConcurrentHashMap<>();
 
 	@Getter
 	@Setter
-	private static class Data {
+	private static class Message {
+		private String id;//
 		private String src;//来源
-		private String dest;//发送目标,网关sn
-		private Object object;//发送数据
+		private String dest;//发送目标
+		private Object data;//发送数据
 		private boolean send;//是否发送
-		private long sendTime;//记录时间
+		private long time;//开始发送时间
 	}
 
-	public static boolean add(Data data) {
-		BlockingQueue<Data> queue;
-		String dest = data.getDest();
+	public static boolean add(Message message) {
+		BlockingQueue<Message> queue;
+		String dest = message.getDest();
 
-		if (map.containsKey(dest)) {
-			queue = map.get(dest);
-		} else {
-			queue = new LinkedBlockingQueue<>();
+		synchronized (MAP) {
+			if (MAP.containsKey(dest)) {
+				queue = MAP.get(dest);
+			} else {
+				queue = new LinkedBlockingQueue<>();
+			}
 		}
 
 		try {
-			queue.put(data);
+			queue.put(message);
 		} catch (InterruptedException e) {
 			return false;
 		}
@@ -44,13 +44,22 @@ public class CommandManager {
 		return true;
 	}
 
+	/**
+	 * 移除响应时间超时(自发送起**秒内未及时回复)的消息
+	 */
 	public static void monitor() {
-		map.forEach((sn, list) -> {
-			Data data = list.peek();
-			if (data != null && CodecKit.validateTime(data.getSendTime(), MESSAGE_SEND_AWAIT)) {
-				list.poll();
+		ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
+		Runnable task = () -> {
+			while (true) {
+				MAP.forEach((dest, list) -> {
+					Message data = list.peek();
+					if (data != null && data.isSend() && CodecKit.validateTime(data.getTime(), Config.MESSAGE_SEND_AWAIT)) {
+						list.poll();
+					}
+				});
 			}
-		});
+		};
+		service.schedule(task, 0, TimeUnit.SECONDS);
 	}
 
 }

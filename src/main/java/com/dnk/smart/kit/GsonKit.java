@@ -38,6 +38,14 @@ public class GsonKit {
 		return get(jsonObject, key).getAsBoolean();
 	}
 
+	public static String getString(JsonObject jsonObject, String key) {
+		return get(jsonObject, key).getAsString();
+	}
+
+	public static String getString(String json, String key) {
+		return getString(getJson(json), key);
+	}
+
 	public static void main(String[] args) {
 		String a = "{\"a\":1}";
 		String b = "{b:2}";

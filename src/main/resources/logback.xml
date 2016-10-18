@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="60 seconds" debug="false">
-    <!--<property name="dir" value="${catalina.home}/logs/" />-->
+    <property name="dir" value="d:/work_logs/"/>
 
     <!--
         c {length }lo {length }logger {length } 缩短logger名，设置为0表示只输入logger最右边点符号之后的字符串
@@ -27,7 +27,7 @@
         </encoder>
     </appender>
 
-    <!--<appender name="ROLL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${dir}/today.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${dir}%d{yyyy-MM-dd}.log</fileNamePattern>
@@ -38,9 +38,10 @@
         </encoder>
         <append>true</append>
         <prudent>false</prudent>
-    </appender>-->
+    </appender>
 
     <logger name="com.dnk.smart" level="DEBUG" additivity="false">
+        <appender-ref ref="FILE"/>
         <appender-ref ref="STDOUT"/>
     </logger>
 
