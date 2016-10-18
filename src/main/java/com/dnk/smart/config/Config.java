@@ -4,7 +4,7 @@ public class Config {
 
 	public static final String LOCAL_HOST = "127.0.0.1";
 
-	public static final String BROADCAST_HOST = "255.255.255.255";
+	//public static final String BROADCAST_HOST = "255.255.255.255";
 
 	/**
 	 *

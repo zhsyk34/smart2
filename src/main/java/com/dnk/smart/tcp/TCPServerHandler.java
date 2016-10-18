@@ -49,7 +49,7 @@ public class TCPServerHandler extends ChannelInboundHandlerAdapter {
 //			System.out.println(c);
 //
 //			if (c == 'a') {
-//				GatewayManager.pass(ctx.channel(), "udid001");
+//				GatewayManager.update(ctx.channel(), "udid001");
 //			}
 //		}
 		//GatewayManager.add(ctx.channel(), "");
