@@ -5,10 +5,21 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TCPServer {
 
+	private static final Logger logger = LoggerFactory.getLogger(TCPServer.class);
+
+	private static volatile boolean isStart = false;
+
 	public static void start() {
+		if (isStart) {
+			return;
+		}
+		isStart = true;
+
 		ServerBootstrap bootstrap = new ServerBootstrap();
 
 		EventLoopGroup mainGroup = new NioEventLoopGroup();
@@ -24,7 +35,6 @@ public class TCPServer {
 		//logging
 		//bootstrap.childHandler(new LoggingHandler());
 
-		//handlers
 		bootstrap.childHandler(new ChannelInitializer<Channel>() {
 			@Override
 			protected void initChannel(Channel ch) throws Exception {
@@ -36,7 +46,7 @@ public class TCPServer {
 
 		try {
 			ChannelFuture future = bootstrap.bind(Config.TCP_SERVER_PORT).sync();
-			System.out.println("TCPServer start at port : " + Config.TCP_SERVER_PORT);
+			logger.debug("TCPServer start at port : " + Config.TCP_SERVER_PORT);
 			future.channel().closeFuture().sync();
 		} catch (InterruptedException e) {
 			e.printStackTrace();

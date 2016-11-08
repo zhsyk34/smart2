@@ -33,7 +33,7 @@ public class TCPDecodeHandler extends ByteToMessageDecoder {
 			return;
 		}
 
-		//header-1
+		//header:1
 		int index = in.indexOf(in.readerIndex(), in.readerIndex() + in.readableBytes() - 1, HEADER[0]);
 		if (index == -1) {
 			in.clear();
@@ -44,11 +44,11 @@ public class TCPDecodeHandler extends ByteToMessageDecoder {
 
 		//length-fuzzy
 		if (in.readableBytes() < MSG_MIN_LENGTH) {
-			logger.debug("数据不完整(粗略估计),继续等待中...");
+			logger.debug("数据不完整(依据数据长度粗略估计),继续等待中...");
 			return;
 		}
 
-		//header-2
+		//header:2
 		in.readerIndex(index + 1);
 		if (in.readByte() != HEADER[1]) {
 			logger.debug("第二个帧头数据不匹配,丢弃此前数据:");
@@ -59,7 +59,9 @@ public class TCPDecodeHandler extends ByteToMessageDecoder {
 
 		//length-exact
 		int length = ByteKit.byteArrayToInt(new byte[]{in.readByte(), in.readByte()});
-		logger.debug("校验长度:[" + length + "], 数据长度:[" + (length - 4) + "]");
+		//真正的数据长度
+		int actual = length - LENGTH_BYTES - VERIFY_BYTES;
+		logger.debug("校验长度:[" + length + "], 数据长度应为:[" + actual + "]");
 		if (length < LENGTH_BYTES + DATA_MIN_BYTES + VERIFY_BYTES) {
 			logger.debug("长度校验数据校验错误,继续从下个位置:[" + (index + 1) + "]开始查找");
 			in.readerIndex(index + 1);
@@ -73,8 +75,8 @@ public class TCPDecodeHandler extends ByteToMessageDecoder {
 		}
 
 		//data
-		byte[] data = new byte[length - LENGTH_BYTES - VERIFY_BYTES];
-		in.readBytes(length - LENGTH_BYTES - VERIFY_BYTES).getBytes(0, data);
+		byte[] data = new byte[actual];
+		in.readBytes(actual).getBytes(0, data);
 
 		//verify
 		if (!validateVerify(data, new byte[]{in.readByte(), in.readByte()})) {

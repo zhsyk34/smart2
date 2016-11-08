@@ -2,6 +2,7 @@ package com.dnk.smart.kit;
 
 import com.google.gson.*;
 
+//TODO
 public class GsonKit {
 
 	private static final GsonBuilder BUILDER = new GsonBuilder();

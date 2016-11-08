@@ -2,7 +2,6 @@ package com.dnk.smart.tcp;
 
 import com.dnk.smart.kit.CodecKit;
 import com.dnk.smart.kit.GsonKit;
-import com.dnk.smart.session.SessionManager;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
@@ -68,8 +67,7 @@ public class Process {
 
 //		ctx.write(msg);
 
-		Channel channel = SessionManager.get(ctx.channel()).getChannel();
-		channel.writeAndFlush(Unpooled.wrappedBuffer((ByteBuf) msg));
+		ctx.channel().writeAndFlush(Unpooled.wrappedBuffer((ByteBuf) msg));
 	}
 
 	private static void login(Channel channel) {

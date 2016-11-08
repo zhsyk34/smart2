@@ -1,7 +1,6 @@
 package com.dnk.smart.config;
 
 public class MessageFormat {
-
 	//header
 	public static final byte[] HEADER = new byte[]{0x5A, (byte) 0xA5};
 	//footer

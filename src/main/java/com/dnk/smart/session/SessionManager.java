@@ -2,6 +2,7 @@ package com.dnk.smart.session;
 
 import com.dnk.smart.config.Config;
 import com.dnk.smart.kit.CodecKit;
+import com.dnk.smart.kit.ValidateKit;
 import io.netty.channel.Channel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,17 +11,25 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
+import static com.dnk.smart.config.Config.*;
+import static com.dnk.smart.session.Device.APP;
+import static com.dnk.smart.session.Device.GATEWAY;
+
+/**
+ * 会话(连接)管理
+ */
 public class SessionManager {
 
 	private static final Logger logger = LoggerFactory.getLogger(SessionManager.class);
 
-	private static final Map<String, SessionInfo> ACCEPT = new ConcurrentHashMap<>();
-	private static final Map<String, SessionInfo> APP = new ConcurrentHashMap<>();
-	private static final Map<String, SessionInfo> GATEWAY = new ConcurrentHashMap<>();
+	//请求连接
+	private static final Map<String, SessionInfo> accept = new ConcurrentHashMap<>();
+	//登录的app连接
+	private static final Map<String, SessionInfo> app = new ConcurrentHashMap<>(APP_PREDICT);
+	//登录的网关连接
+	private static final Map<String, SessionInfo> gateway = new ConcurrentHashMap<>(GATEWAY_PREDICT);
 
-	//
 	private static String id(Channel channel) {
 		return channel.id().asLongText();
 	}
@@ -30,7 +39,7 @@ public class SessionManager {
 	 */
 	public static void add(Channel channel) {
 		SessionInfo sessionInfo = SessionInfo.init(channel);
-		ACCEPT.put(id(channel), sessionInfo);
+		accept.put(id(channel), sessionInfo);
 	}
 
 	/**
@@ -39,74 +48,111 @@ public class SessionManager {
 	 * @param type 设备类型
 	 * @param sn   设备sn号(网关必要信息udid)
 	 */
-	public static void pass(Channel channel, int type, String sn) {
+	public static boolean pass(Channel channel, int type, String sn) {
+		Device device = Device.get(type);
+		if (device == null) {
+			logger.debug("error type with device.");
+			return false;
+		}
+		if (device == GATEWAY && ValidateKit.empty(sn)) {
+			logger.debug("gateway sn can't be empty.");
+			return false;
+		}
+
 		String id = id(channel);
+		if (accept.containsKey(id)) {
+			synchronized (accept) {
+				if (accept.containsKey(id)) {
+					SessionInfo sessionInfo = accept.remove(id);
 
-		synchronized (ACCEPT) {
-			if (ACCEPT.containsKey(id)) {
-				SessionInfo sessionInfo = ACCEPT.remove(id);
-
-				sessionInfo.pass(type, sn);
-				switch (sessionInfo.getDevice()) {
-					case APP:
-						APP.put(id, sessionInfo);
-						break;
-					case GATEWAY:
-						GATEWAY.put(sn, sessionInfo);
-						break;
-				}
-				logger.debug("登录成功");
-			}
-		}
-	}
-
-	/**
-	 * 关闭连接并删除数据
-	 */
-	public static void remove(String id) {
-		SessionInfo sessionInfo = null;
-		synchronized (APP) {
-			if (APP.containsKey(id)) {
-				sessionInfo = APP.remove(id);
-			} else {
-				synchronized (GATEWAY) {
-					if (GATEWAY.containsKey(id)) {
-						sessionInfo = GATEWAY.remove(id);
+					sessionInfo.pass(device, sn);
+					switch (device) {
+						case APP:
+							app.put(id, sessionInfo);
+							break;
+						case GATEWAY:
+							gateway.put(sn, sessionInfo);
+							break;
 					}
+					logger.debug("登录成功");
+					return true;
+				}
+			}
+		}
+		logger.debug("the channel is not exists.");
+		return false;
+	}
+
+	/**
+	 * 查询(已登录)连接类型
+	 */
+	private static Device type(Channel channel) {
+		//TODO
+		/*AttributeKey<Integer> type = AttributeKey.newInstance("type");
+		channel.attr(type).set(1);*/
+		if (app.containsKey(id(channel))) {
+			return APP;
+		}
+
+		for (SessionInfo sessionInfo : gateway.values()) {
+			if (sessionInfo != null && sessionInfo.getChannel() == channel) {
+				return GATEWAY;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * 查询(已登录)的连接信息
+	 */
+	public static SessionInfo info(Channel channel) {
+		String id = id(channel);
+		if (app.containsKey(id)) {
+			synchronized (app) {
+				if (app.containsKey(id)) {
+					return app.get(id);
 				}
 			}
 		}
 
-		if (sessionInfo != null) {
-			Channel channel = sessionInfo.getChannel();
-			if (channel != null && channel.isOpen()) {
+		for (SessionInfo sessionInfo : gateway.values()) {
+			if (sessionInfo != null && sessionInfo.getChannel() == channel) {
+				return sessionInfo;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * 关闭连接并删除连接记录
+	 */
+	public static boolean close(Channel channel) {
+		String id = id(channel);
+		if (app.containsKey(id)) {
+			synchronized (app) {
 				channel.close();
+				app.remove(id);
+			}
+			logger.debug("app channel close.");
+			return true;
+		}
+
+		for (Map.Entry<String, SessionInfo> entry : gateway.entrySet()) {
+			String sn = entry.getKey();
+			SessionInfo sessionInfo = entry.getValue();
+			if (sessionInfo != null && sessionInfo.getChannel() == channel) {
+				channel.close();
+				gateway.remove(sn);
+				logger.debug("gateway channel close.");
+				return true;
 			}
 		}
-	}
 
-	/**
-	 * 关闭连接并删除数据
-	 */
-	public static void remove(Channel channel) {
-		remove(id(channel));
-	}
-
-	/**
-	 * 更新update时间
-	 */
-	public static void update(Channel channel) {
-		synchronized (MAP) {
-			if (contains(channel)) {
-				SessionInfo sessionInfo = get(channel);
-				sessionInfo.setUpdate(System.currentTimeMillis());
-				logger.debug("更新成功");
-			}
-		}
-	}
-
-	private static boolean contains(Channel channel) {
-		return MAP.containsKey(id(channel));
+		channel.close();
+		accept.remove(id);
+		logger.debug("accept channel close.");
+		return true;
 	}
 
 	/**
@@ -117,63 +163,59 @@ public class SessionManager {
 	public static void monitor() {
 		ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
 
+		//TODO:分别扫描
 		Runnable task = () -> {
 			while (true) {
-				//TODO:TEST
 				try {
 					Thread.sleep(3000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 
-				logger.debug("当前连接:[" + MAP.size() + "]");
-				MAP.forEach((id, sessionInfo) -> {
-					long login = sessionInfo.getCreate();
-
-					//登录超时
-					if (!sessionInfo.isPass() && CodecKit.validateTime(login, Config.LOGIN_TIME_OUT)) {
+				//登录超时
+				logger.debug("当前未登录连接:[" + accept.size() + "]");
+				accept.forEach((id, sessionInfo) -> {
+					if (sessionInfo != null && CodecKit.validateTime(sessionInfo.getCreate(), Config.LOGIN_TIME_OUT)) {
 						logger.debug("超时未登录");
-						remove(id);
+						remove(accept, id);
 					}
+				});
 
-					//在线超时
-					SessionInfo.Device device = sessionInfo.getDevice();
-					if (device != null) {
-						long valid = device == SessionInfo.Device.APP ? Config.APP_TIME_OUT : Config.GATEWAY_TIME_OUT;
+				//APP在线超时
+				logger.debug("当前APP连接:[" + app.size() + "]");
+				app.forEach((id, sessionInfo) -> {
+					if (sessionInfo != null && CodecKit.validateTime(sessionInfo.getCreate(), APP_TIME_OUT)) {
+						logger.debug("APP在线时长已到,移除!");
+						remove(app, id);
+					}
+				});
 
-						if (CodecKit.validateTime(login, valid)) {
-							logger.debug("在线时长已到,移除...");
-							remove(id);
-						}
+				//GATEWAY在线超时
+				logger.debug("当前网关连接:[" + gateway.size() + "]");
+				gateway.forEach((id, sessionInfo) -> {
+					if (sessionInfo != null && CodecKit.validateTime(sessionInfo.getCreate(), GATEWAY_TIME_OUT)) {
+						logger.debug("网关在线时长已到,移除!");
+						remove(gateway, id);
 					}
 				});
 			}
 		};
-		service.schedule(task, 0, TimeUnit.SECONDS);
+
+		service.submit(task);
+		service.shutdown();
 	}
 
-//	/**
-//	 * 获取连接信息
-//	 */
-//	public static SessionInfo get(Channel channel) {
-//		return MAP.get(id(channel));
-//	}
-//
-//	/**
-//	 * 通过指定sn获取连接信息
-//	 */
-//	public static SessionInfo get(String sn) {
-//		if (sn == null || sn.isEmpty()) {
-//			return null;
-//		}
-//		synchronized (MAP) {
-//			for (SessionInfo sessionInfo : MAP.values()) {
-//				if (sn.equals(sessionInfo.getSn())) {
-//					return sessionInfo;
-//				}
-//			}
-//		}
-//		return null;
-//	}
+	/**
+	 * 删除指定监测数据并关闭对应的连接
+	 */
+	private static void remove(Map<String, SessionInfo> map, String id) {
+		SessionInfo sessionInfo = map.remove(id);
+		if (sessionInfo != null) {
+			Channel channel = sessionInfo.getChannel();
+			if (channel != null && channel.isOpen()) {
+				channel.close();
+			}
+		}
+	}
 
 }

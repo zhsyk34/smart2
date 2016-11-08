@@ -1,5 +1,6 @@
 package com.dnk.smart.kit;
 
+// TODO: 2016-11-07
 public class FormatKit {
 
 	public static <T> T getEnum(Class<T> clazz, Integer id) {

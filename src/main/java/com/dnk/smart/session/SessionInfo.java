@@ -9,29 +9,6 @@ import lombok.ToString;
 @Setter
 @ToString
 public class SessionInfo {
-
-	@Getter
-	public enum Device {
-		GATEWAY(0, "智能网关"), APP(1, "手机应用程序");
-
-		private int type;
-		private String description;
-
-		Device(int type, String description) {
-			this.type = type;
-			this.description = description;
-		}
-
-		public static Device get(int type) {
-			for (Device device : Device.values()) {
-				if (device.getType() == type) {
-					return device;
-				}
-			}
-			return null;
-		}
-	}
-
 	private Channel channel;
 	private Device device;
 	private String sn;//设备号(目前只记录网关)
@@ -45,6 +22,7 @@ public class SessionInfo {
 	/**
 	 * device,sn在接收登录请求后获取,pass在登录后更新
 	 */
+	//TODO min time
 	private static SessionInfo build(Channel channel, Device device, String sn, long create, long update, boolean pass) {
 		if (channel == null || create < 1 || update < 1) {
 			throw new RuntimeException("params is invalid.");
@@ -71,8 +49,7 @@ public class SessionInfo {
 	/**
 	 * 通过登录后
 	 */
-	public SessionInfo pass(int type, String sn) {
-		Device device = Device.get(type);
+	public SessionInfo pass(Device device, String sn) {
 		if (device == null) {
 			throw new RuntimeException("error type with device");
 		}

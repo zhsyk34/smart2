@@ -13,6 +13,7 @@ import static com.dnk.smart.kit.ByteKit.smallIntToByteArray;
 public class CodecKit {
 
 	private static final int MARK = 0xff;
+	//数据部分以外(冗余数据)长度
 	private static final int REDUNDANT = HEADER.length + LENGTH_BYTES + VERIFY_BYTES + FOOTER.length;
 
 	/**
@@ -48,7 +49,7 @@ public class CodecKit {
 		ByteBuf buffer = Unpooled.buffer(data.length + REDUNDANT);
 
 		//header:2
-		buffer.writeByte(0x5A).writeByte(0xA5);
+		buffer.writeByte(HEADER[0]).writeByte(HEADER[1]);
 		//length:2
 		buffer.writeBytes(encodeLength(data));
 		//data
@@ -56,13 +57,13 @@ public class CodecKit {
 		//verify:2
 		buffer.writeBytes(encodeVerify(data));
 		//footer:2
-		buffer.writeByte(0xA5).writeByte(0x5A);
+		buffer.writeByte(FOOTER[0]).writeByte(FOOTER[1]);
 
 		return buffer.array();
 	}
 
 	/**
-	 * ----------------解码部分-------------------
+	 * ----------------以下是解码部分-------------------
 	 */
 
 	//验证校验码
